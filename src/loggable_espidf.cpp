@@ -1,14 +1,20 @@
 #include "loggable_espidf.hpp"
 #include "loggable.hpp"
+#include "loggable_os.hpp"
 #include <esp_log.h>
-#include <mutex>
-#include <string>
-#include <string_view>
 #include <charconv>
 #include <cstdarg>
 #include <cstdio>
+#include <mutex>
+#include <string>
+#include <string_view>
 
 namespace loggable {
+
+namespace os {
+IAsyncBackend& get_freertos_backend() noexcept;
+} // namespace os
+
 namespace espidf {
 
 namespace {
@@ -124,7 +130,7 @@ int vprintf_hook(const char* format, va_list args) {
         ~LoggingGuard() { flag = false; }
     } guard{is_logging};
 
-    char static_buf[128];
+    char static_buf[256];
     va_list args_copy;
     va_copy(args_copy, args);
     int size = std::vsnprintf(static_buf, sizeof(static_buf), format, args_copy);
@@ -169,6 +175,10 @@ std::atomic<bool> LogHook::_installed{false};
 void LogHook::install() noexcept {
     std::lock_guard<std::mutex> lock(hook_mutex);
     if (!_installed.load(std::memory_order_acquire)) {
+        os::set_backend(&os::get_freertos_backend());
+
+        Sinker::instance().init();
+
         original_vprintf = esp_log_set_vprintf(&vprintf_hook);
         _installed.store(true, std::memory_order_release);
     }
@@ -180,6 +190,8 @@ void LogHook::uninstall() noexcept {
         esp_log_set_vprintf(original_vprintf);
         original_vprintf = nullptr;
         _installed.store(false, std::memory_order_release);
+
+        Sinker::instance().shutdown();
     }
 }
 
