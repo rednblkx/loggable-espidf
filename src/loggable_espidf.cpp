@@ -102,6 +102,13 @@ void dispatch_to_sinker(std::string_view message) {
 }
 
 int vprintf_hook(const char* format, va_list args) {
+    if (original_vprintf) {
+        va_list args_copy;
+        va_copy(args_copy, args);
+        original_vprintf(format, args_copy);
+        va_end(args_copy);
+    }
+
     thread_local bool is_logging = false;
     if (is_logging) {
         return 0;
@@ -111,13 +118,6 @@ int vprintf_hook(const char* format, va_list args) {
         bool& flag;
         ~LoggingGuard() { flag = false; }
     } guard{is_logging};
-
-    if (original_vprintf) {
-        va_list args_copy;
-        va_copy(args_copy, args);
-        original_vprintf(format, args_copy);
-        va_end(args_copy);
-    }
 
     char static_buf[128];
     va_list args_copy;
