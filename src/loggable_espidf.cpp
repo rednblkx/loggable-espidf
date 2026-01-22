@@ -109,7 +109,12 @@ int vprintf_hook(const char* format, va_list args) {
         va_end(args_copy);
     }
 
+    #if defined(CONFIG_IDF_TARGET_ESP32C3)
+    // ESP32-C3 either has broken TLS or some strange config option that needs tweaking i haven't found, use static instead (safe on single-core)
+    static bool is_logging = false;
+    #else
     thread_local bool is_logging = false;
+    #endif
     if (is_logging) {
         return 0;
     }
