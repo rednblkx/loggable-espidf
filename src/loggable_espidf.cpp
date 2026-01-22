@@ -102,7 +102,7 @@ void dispatch_to_sinker(std::string_view message) {
 }
 
 int vprintf_hook(const char* format, va_list args) {
-    thread_local static bool is_logging = false;
+    thread_local bool is_logging = false;
     if (is_logging) {
         return 0;
     }
