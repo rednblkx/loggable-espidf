@@ -19,6 +19,7 @@ namespace espidf {
 
 namespace {
 
+static bool _call_original_vprintf = true;
 static vprintf_like_t original_vprintf = nullptr;
 static std::mutex hook_mutex;
 
@@ -65,14 +66,14 @@ void dispatch_to_sinker(std::string_view message) {
             default: break;
         }
 
-        const size_t tag_start = message.find('(');
-        const size_t tag_end = message.find(')', tag_start);
-        const size_t payload_start = message.find(':', tag_end);
+        const size_t time_start = message.find('(');
+        const size_t time_end = message.find(')', time_start);
+        const size_t message_start = message.find(": ", time_end);
 
-        if (tag_end != std::string_view::npos && payload_start != std::string_view::npos && tag_end + 1 < message.length()) {
-            if (tag_start != std::string_view::npos && tag_end > tag_start + 1) {
-                const size_t timestamp_start = tag_start + 1;
-                const size_t timestamp_length = tag_end - timestamp_start;
+        if (time_end != std::string_view::npos && message_start != std::string_view::npos && time_end + 1 < message.length()) {
+            if (time_start != std::string_view::npos && time_end > time_start + 1) {
+                const size_t timestamp_start = time_start + 1;
+                const size_t timestamp_length = time_end - timestamp_start;
                 std::string_view timestamp_str = message.substr(timestamp_start, timestamp_length);
                 
                 unsigned long millis_since_boot = 0;
@@ -83,14 +84,14 @@ void dispatch_to_sinker(std::string_view message) {
                 }
             }
             
-            if (message[tag_end + 1] == ' ') {
-                const size_t tag_text_start = tag_end + 2;
-                if (tag_text_start < payload_start) {
-                    tag = std::string(message.substr(tag_text_start, payload_start - tag_text_start));
+            if (message[time_end + 1] == ' ') {
+                const size_t tag_text_start = time_end + 2;
+                if (tag_text_start < message_start) {
+                    tag = std::string(message.substr(tag_text_start, message_start - tag_text_start));
                 }
             }
 
-            const size_t payload_text_start = payload_start + 2;
+            const size_t payload_text_start = message_start + 2;
             if (payload_text_start < message.length()) {
                 payload = std::string(message.substr(payload_text_start));
             } else {
@@ -103,12 +104,12 @@ void dispatch_to_sinker(std::string_view message) {
         payload = std::string(message);
     }
     
-    LogMessage log_msg(timestamp, level, std::move(tag), std::move(payload));
-    Sinker::instance().dispatch(log_msg);
+    ;
+    Sinker::instance().dispatch(LogMessage{timestamp, level, std::move(tag), std::move(payload)});
 }
 
 int vprintf_hook(const char* format, va_list args) {
-    if (original_vprintf) {
+    if (original_vprintf && _call_original_vprintf) {
         va_list args_copy;
         va_copy(args_copy, args);
         original_vprintf(format, args_copy);
@@ -172,8 +173,9 @@ int vprintf_hook(const char* format, va_list args) {
 
 std::atomic<bool> LogHook::_installed{false};
 
-void LogHook::install() noexcept {
+void LogHook::install(bool call_original_vprintf) noexcept {
     std::lock_guard<std::mutex> lock(hook_mutex);
+    _call_original_vprintf = call_original_vprintf;
     if (!_installed.load(std::memory_order_acquire)) {
         os::set_backend(&os::get_freertos_backend());
 
