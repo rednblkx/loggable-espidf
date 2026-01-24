@@ -1,3 +1,4 @@
+#include "esp_log_timestamp.h"
 #include "loggable_os.hpp"
 
 #include <freertos/FreeRTOS.h>
@@ -85,6 +86,10 @@ public:
 
     void delay_ms(uint32_t ms) noexcept override {
         vTaskDelay(pdMS_TO_TICKS(ms));
+    }
+
+    uint32_t get_time_ms() noexcept override {
+        return esp_log_timestamp();
     }
 
 private:
