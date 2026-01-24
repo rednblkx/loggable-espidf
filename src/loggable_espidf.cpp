@@ -68,7 +68,8 @@ void dispatch_to_sinker(std::string_view message) {
 
         const size_t time_start = message.find('(');
         const size_t time_end = message.find(')', time_start);
-        const size_t message_start = message.find(": ", time_end);
+        size_t message_start = message.find(':', time_end);
+        if((message_start + 1) == ':') message_start = message.find(':', message_start + 1);
 
         if (time_end != std::string_view::npos && message_start != std::string_view::npos && time_end + 1 < message.length()) {
             if (time_start != std::string_view::npos && time_end > time_start + 1) {
@@ -91,9 +92,8 @@ void dispatch_to_sinker(std::string_view message) {
                 }
             }
 
-            const size_t payload_text_start = message_start + 2;
-            if (payload_text_start < message.length()) {
-                payload = std::string(message.substr(payload_text_start));
+            if (message_start < message.length()) {
+                payload = std::string(message.substr(message[message_start + 1] == ' ' ? message_start + 2 : message_start + 1));
             } else {
                 payload = "";
             }
@@ -104,7 +104,6 @@ void dispatch_to_sinker(std::string_view message) {
         payload = std::string(message);
     }
     
-    ;
     Sinker::instance().dispatch(LogMessage{timestamp, level, std::move(tag), std::move(payload)});
 }
 
