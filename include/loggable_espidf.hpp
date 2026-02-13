@@ -2,7 +2,12 @@
 
 #include <atomic>
 
+#include "loggable_os.hpp"
+
 namespace loggable {
+namespace os {
+    IAsyncBackend& get_freertos_backend() noexcept;
+} // namespace os
 namespace espidf {
 
 /**
