@@ -172,11 +172,12 @@ int vprintf_hook(const char* format, va_list args) {
 
 std::atomic<bool> LogHook::_installed{false};
 
-void LogHook::install(bool call_original_vprintf) noexcept {
+void LogHook::install(bool call_original_vprintf, bool createTask) noexcept {
     std::lock_guard<std::mutex> lock(hook_mutex);
     _call_original_vprintf = call_original_vprintf;
     if (!_installed.load(std::memory_order_acquire)) {
-        os::set_backend(&os::get_freertos_backend());
+        if(createTask)
+            os::set_backend(&os::get_freertos_backend());
 
         Sinker::instance().init();
 

@@ -29,7 +29,7 @@ public:
      * When installed, all logs made via `ESP_LOGx` macros will be redirected
      * through the loggable Sinker.
      */
-    static void install(bool call_original_vprintf = true) noexcept;
+    static void install(bool call_original_vprintf = true, bool create_task = false) noexcept;
 
     /**
      * @brief Uninstall the ESP-IDF log hook.
