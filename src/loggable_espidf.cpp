@@ -50,6 +50,11 @@ void cleanup_message(std::string& message) {
 }
 
 void dispatch_to_sinker(std::string_view message) {
+    auto *backend = os::get_backend();
+    if (backend && backend->task_get_current() == Sinker::instance().get_task()) {
+        printf("\nLog came from same task, aborting.\n");
+        return;
+    }
     LogLevel level = LogLevel::Info;
     std::string tag;  // Empty by default
     std::string payload;
@@ -119,7 +124,7 @@ int vprintf_hook(const char* format, va_list args) {
     // ESP32-C3 either has broken TLS or some strange config option that needs tweaking i haven't found, use static instead (safe on single-core)
     static bool is_logging = false;
     #else
-    thread_local bool is_logging = false;
+    static thread_local bool is_logging = false;
     #endif
     if (is_logging) {
         return 0;

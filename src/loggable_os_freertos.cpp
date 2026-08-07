@@ -80,6 +80,10 @@ public:
         return TaskHandle{(result == pdPASS) ? handle : nullptr};
     }
 
+    TaskHandle task_get_current() noexcept override {
+      return {xTaskGetCurrentTaskHandle()};
+    }
+
     void task_delete(TaskHandle task) noexcept override {
         vTaskDelete(static_cast<::TaskHandle_t>(task._handle));
     }
