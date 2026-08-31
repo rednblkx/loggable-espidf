@@ -61,13 +61,11 @@ public:
         BaseType_t result;
 
         if (config.core >= 0) {
-            result = xTaskCreatePinnedToCore(fn,
-                                             config.name,
-                                             config.stack_size,
-                                             arg,
-                                             config.priority,
-                                             &handle,
-                                             config.core);
+#ifndef CONFIG_FREERTOS_UNICORE
+          result = xTaskCreatePinnedToCore(fn, config.name, config.stack_size, arg, config.priority, &handle, config.core);
+#else
+          result = xTaskCreate(fn, config.name, config.stack_size, arg, config.priority, &handle);
+#endif
         } else {
             result = xTaskCreate(fn,
                                  config.name,
