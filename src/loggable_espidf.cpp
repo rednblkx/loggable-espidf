@@ -51,7 +51,7 @@ void cleanup_message(std::string& message) {
 
 void dispatch_to_sinker(std::string_view message) {
     auto *backend = os::get_backend();
-    if (backend && backend->task_get_current() == Sinker::instance().get_task()) {
+    if (backend && Sinker::instance().is_dispatcher_task(backend->task_get_current())) {
         printf("\nLog came from same task, aborting.\n");
         return;
     }
